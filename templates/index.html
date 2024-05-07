@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader with Video Preview</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex justify-center items-center h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h1 class="text-3xl font-bold mb-6 text-center">YouTube Downloader</h1>
+        <form id="linkForm" class="mb-6">
+            <label for="videoInput" class="block mb-2">Enter YouTube Video Link or ID:</label>
+            <input type="text" id="videoInput" name="video_input" required class="w-full px-4 py-2 border rounded-md focus:outline-none focus:border-blue-500">
+            <label for="qualitySelect" class="block mt-4 mb-2">Select Quality:</label>
+            <select id="qualitySelect" name="quality" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:border-blue-500">
+                <option value="best">Best</option>
+                <option value="worst">Worst</option>
+                <option value="bestaudio">Best Audio</option>
+                <option value="worstaudio">Worst Audio</option>
+            </select>
+            <button type="submit" class="mt-4 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none w-full">Get Download Link</button>
+        </form>
+        <div id="result" class="mb-6"></div>
+        <div class="video-container relative overflow-hidden w-full">
+            <video id="videoPlayer" controls autoplay class="w-full h-full object-cover"></video>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('linkForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const videoInput = document.getElementById('videoInput').value.trim();
+            const qualitySelect = document.getElementById('qualitySelect').value;
+            if (!videoInput) {
+                showError('Please enter a video link or ID.');
+                return;
+            }
+
+            fetch(`/get_video_link?video_input=${encodeURIComponent(videoInput)}&quality=${qualitySelect}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const resultDiv = document.getElementById('result');
+                const videoLink = data.video_link;
+                resultDiv.innerHTML = `<p class="text-green-500">Direct Download Link: <a href="${videoLink}" target="_blank">${videoLink}</a></p>`;
+                const expiryTime = new Date(data.expiry_time * 1000);
+                resultDiv.innerHTML += `<p class="text-gray-600">Link will expire at ${expiryTime.toLocaleTimeString()}</p>`;
+
+                // Display video preview
+                const videoPlayer = document.getElementById('videoPlayer');
+                videoPlayer.src = videoLink;
+                videoPlayer.style.display = 'block';
+                videoPlayer.load(); // Load the video
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+                showError('Error fetching the download link.');
+            });
+        });
+
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<p class="text-red-500">${message}</p>`;
+            // Hide the video player if there's an error
+            const videoPlayer = document.getElementById('videoPlayer');
+            videoPlayer.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
+
